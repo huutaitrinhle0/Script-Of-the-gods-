@@ -1,0 +1,33 @@
+name: Overlord Secure Guardrail
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  guardrail:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Required files
+        shell: bash
+        run: |
+          test -f Overlord-Of-The-Gods.lua
+          test -f README.md
+
+      - name: Scan for high-risk execution primitives
+        shell: bash
+        run: |
+          ! grep -nE 'loadstring|VirtualUser|fireproximityprompt|hookfunction|getgenv|debug\.|game:HttpGet' Overlord-Of-The-Gods.lua
+
+      - name: Scan for obvious secrets
+        shell: bash
+        run: |
+          ! grep -nEi 'sk-[A-Za-z0-9_-]{20,}|OPENAI_API_KEY|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY' -- Overlord-Of-The-Gods.lua README.md
