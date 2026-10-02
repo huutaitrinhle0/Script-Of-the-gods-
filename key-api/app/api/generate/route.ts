@@ -88,4 +88,4 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "Invalid request";
     return NextResponse.json({ error: message }, { status: 400 });
   }
-      }
+  }
