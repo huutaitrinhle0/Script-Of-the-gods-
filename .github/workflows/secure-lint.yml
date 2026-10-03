@@ -30,6 +30,7 @@ jobs:
         run: |
           echo "=== TRACKED PROJECT FILES ==="
           git ls-files
+
           echo
           echo "=== FILE COUNT ==="
           git ls-files | wc -l
@@ -42,16 +43,30 @@ jobs:
           test -f Overlord-Of-The-Gods.lua
           test -f README.md
           test -f OwnerKeyGuard.server.lua
+
           test -f owner-key/OwnerKeyGuard.server.lua
           test -f owner-key/OwnerKeyClient.local.lua
+          test -f owner-key/README.md
+
+          test -f README_OWNER_KEY_INTEGRATION.md
 
           test -f key-api/package.json
           test -f key-api/tsconfig.json
           test -f key-api/next.config.ts
+          test -f key-api/next-env.d.ts
+          test -f key-api/README.md
+
+          test -f key-api/lib/store.ts
+          test -f key-api/lib/security.ts
+          test -f key-api/lib/key.ts
+
+          test -f key-api/app/page.tsx
+          test -f key-api/app/globals.css
+          test -f key-api/app/layout.tsx
 
           test -f key-api/app/api/generate/route.ts
-          test -f key-api/app/api/verify/route.ts
           test -f key-api/app/api/revoke/route.ts
+          test -f key-api/app/api/verify/route.ts
 
           echo "Required project files: OK"
 
@@ -117,7 +132,7 @@ jobs:
 
           echo "Sensitive-file scan: PASS"
 
-      - name: Check Lua syntax files exist
+      - name: Show Lua source inventory
         shell: bash
         run: |
           set -e
@@ -137,4 +152,4 @@ jobs:
           echo "======================================"
           echo " OVERLORD SECURE GUARDRAIL: PASSED"
           echo "======================================"
-          echo "Workflow completed successfully."
+          echo "Full project security check completed."
