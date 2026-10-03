@@ -1,0 +1,1022 @@
+if _G.OV25 then return end
+_G.OV25=true
+
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local P=game:GetService("Players")
+local R=game:GetService("ReplicatedStorage")
+local T=game:GetService("TweenService")
+local PS=game:GetService("ProximityPromptService")
+local RS=game:GetService("RunService")
+local UIS=game:GetService("UserInputService")
+local L=game:GetService("Lighting")
+local V=game:GetService("VirtualUser")
+local SC=game:GetService("ScriptContext")
+local LP=P.LocalPlayer
+
+if not LP then _G.OV25=nil return end
+
+_G.EggGom=false
+_G.TweenSpeed=150
+
+--==================================================
+-- CORE
+--==================================================
+
+local function Load(url)
+    local ok,res=pcall(function()
+        assert(type(loadstring)=="function","loadstring unavailable")
+        local src=game:HttpGet(url)
+        assert(type(src)=="string" and #src>0,"empty source")
+        local fn=loadstring(src)
+        assert(type(fn)=="function","invalid Lua source")
+        return fn()
+    end)
+    return ok,res
+end
+
+local ok,RF=Load("https://sirius.menu/rayfield")
+if not ok or not RF then
+    _G.OV25=nil
+    return
+end
+
+local Rayfield=RF
+
+local function N(t,c,d)
+    pcall(function()
+        Rayfield:Notify({
+            Title=tostring(t),
+            Content=tostring(c),
+            Duration=d or 2
+        })
+    end)
+end
+
+local function C()
+    return LP.Character
+end
+
+local function Root()
+    local c=C()
+    return c and c:FindFirstChild("HumanoidRootPart")
+end
+
+local function Hum()
+    local c=C()
+    return c and c:FindFirstChildOfClass("Humanoid")
+end
+
+local function Remote(names)
+    for _,n in ipairs(names) do
+        local x=R:FindFirstChild(n,true)
+        if x and x:IsA("RemoteEvent") then
+            return x
+        end
+    end
+end
+
+local function Pos(p)
+    local x=p and p.Parent
+    if not x then return end
+    if x:IsA("Attachment") then return x.WorldPosition end
+    if x:IsA("BasePart") then return x.Position end
+    if x:IsA("Model") then return x:GetPivot().Position end
+    local b=x:FindFirstChildWhichIsA("BasePart",true)
+    return b and b.Position
+end
+
+local W=Rayfield:CreateWindow({
+    Name="👑 OVERLORD V25",
+    Icon=0,
+    LoadingTitle="OVERLORD",
+    LoadingSubtitle="Lite",
+    KeySystem=false,
+    ConfigurationSaving={
+        Enabled=true,
+        FolderName="OV25",
+        FileName="Config"
+    }
+})
+
+--==================================================
+-- 🦖 GUARD
+--==================================================
+
+local G=W:CreateTab("🦖 Guard",4483362458)
+local Weld
+
+local function NearestGuard()
+    local r=Root()
+    if not r then return end
+
+    local best,dist=nil,math.huge
+
+    for _,m in ipairs(workspace:GetDescendants()) do
+        if m:IsA("Model") then
+            local n=m.Name:lower()
+
+            if n:find("guard",1,true)
+            or n:find("bodyguard",1,true) then
+
+                local p=m.PrimaryPart
+                    or m:FindFirstChild("HumanoidRootPart")
+
+                if p and p:IsA("BasePart") then
+                    local d=(r.Position-p.Position).Magnitude
+                    if d<dist then
+                        best,dist=m,d
+                    end
+                end
+            end
+        end
+    end
+
+    return best
+end
+
+G:CreateButton({
+    Name="⚡ Cưỡi Guard",
+
+    Callback=function()
+
+        local m=NearestGuard()
+        local c,r=C(),Root()
+        local p=m and (
+            m.PrimaryPart
+            or m:FindFirstChild("HumanoidRootPart")
+        )
+
+        if not m or not c or not r or not p then
+            return N("Guard","Không tìm thấy Guard.",2)
+        end
+
+        if Weld then
+            pcall(function()
+                Weld:Destroy()
+            end)
+        end
+
+        pcall(function()
+            c:PivotTo(
+                p.CFrame*CFrame.new(0,3,0)
+            )
+        end)
+
+        local w=Instance.new("WeldConstraint")
+        w.Part0=r
+        w.Part1=p
+        w.Parent=c
+        Weld=w
+
+        N("Guard","Đã cưỡi Guard.",2)
+    end
+})
+
+for _,a in ipairs({
+    {"🗡️ Attack","Attack"},
+    {"🥚 Force Egg","LayEgg"},
+    {"🚀 Super Jump","Jump"}
+}) do
+
+    G:CreateButton({
+        Name=a[1],
+
+        Callback=function()
+
+            local q=Remote({
+                "GuardAction",
+                "GuardRemote"
+            })
+
+            if not q then
+                return N(
+                    "Guard",
+                    "Không tìm thấy Guard Remote.",
+                    2
+                )
+            end
+
+            local good,err=pcall(function()
+                q:FireServer(a[2])
+            end)
+
+            N(
+                good and "Guard" or "Guard Error",
+                good
+                and ("Đã gửi "..a[2])
+                or tostring(err),
+                3
+            )
+        end
+    })
+end
+
+--==================================================
+-- 🔨 FORGE
+--==================================================
+
+local F=W:CreateTab("🔨 Forge",4483362458)
+
+for _,x in ipairs({
+    {"🥚 Trứng","CraftEgg","Mythical Egg Part"},
+    {"🪄 Gậy","CraftStaff","Infinity Rod Part"},
+    {"🐾 Pet","CraftPet","Secret Omega Pet"},
+    {"👑 Hạng","CraftRank","Overlord Rank"},
+    {"🌌 Biome","CraftBiome","Infinity Void Biome"},
+    {"🦖 Guard","CraftGuard","Cybernetic Guard"}
+}) do
+
+    F:CreateButton({
+        Name=x[1],
+
+        Callback=function()
+
+            local q=Remote({
+                "ForgeRemote",
+                "CraftItem"
+            })
+
+            if not q then
+                return N(
+                    "Forge",
+                    "Không tìm thấy Forge Remote.",
+                    2
+                )
+            end
+
+            local good,err=pcall(function()
+                q:FireServer(x[2],x[3])
+            end)
+
+            N(
+                good and "Forge" or "Forge Error",
+                good
+                and ("Đã gửi "..x[3])
+                or tostring(err),
+                3
+            )
+        end
+    })
+end
+
+--==================================================
+-- 🥚 AUTO FARM + PROXIMITY PROMPT
+--==================================================
+
+local A=W:CreateTab("🥚 Auto Farm",4483362458)
+
+local Prompts={}
+local Farm=false
+local Token=0
+local Tween
+local Speed=16
+local Jump=50
+local SpeedOn=false
+local JumpOn=false
+local Noclip=false
+
+local function AddPrompt(x)
+    if x:IsA("ProximityPrompt") then
+        Prompts[x]=true
+    end
+end
+
+for _,x in ipairs(workspace:GetDescendants()) do
+    AddPrompt(x)
+end
+
+workspace.DescendantAdded:Connect(AddPrompt)
+
+workspace.DescendantRemoving:Connect(
+    function(x)
+        Prompts[x]=nil
+    end
+)
+
+local function PromptCount()
+    local n=0
+    for p in pairs(Prompts) do
+        if p.Parent then
+            n+=1
+        end
+    end
+    return n
+end
+
+local function TargetPrompt()
+
+    local r=Root()
+    if not r then return end
+
+    local best,dist=nil,math.huge
+
+    for p in pairs(Prompts) do
+
+        if p.Parent and p.Enabled then
+
+            local text=(
+                p.Name.." "
+                ..p.ActionText.." "
+                ..p.ObjectText
+            ):lower()
+
+            if text:find("egg",1,true)
+            or text:find("nest",1,true)
+            or text:find("steal",1,true)
+            or text:find("grab",1,true) then
+
+                local pos=Pos(p)
+
+                if pos then
+                    local d=(r.Position-pos).Magnitude
+
+                    if d<dist then
+                        best,dist=p,d
+                    end
+                end
+            end
+        end
+    end
+
+    return best
+end
+
+local function Stop()
+
+    Token+=1
+    Farm=false
+
+    if Tween then
+        pcall(function()
+            Tween:Cancel()
+        end)
+        Tween=nil
+    end
+end
+
+local function Go(cf)
+
+    local r=Root()
+    if not r then return false end
+
+    local d=(r.Position-cf.Position).Magnitude
+
+    if d<=1 then
+        r.CFrame=cf
+        return true
+    end
+
+    local my=Token
+
+    local ok,t=pcall(function()
+        return T:Create(
+            r,
+            TweenInfo.new(
+                math.max(
+                    d/math.clamp(
+                        tonumber(_G.TweenSpeed) or 150,
+                        1,1000
+                    ),
+                    .05
+                ),
+                Enum.EasingStyle.Linear
+            ),
+            {CFrame=cf}
+        )
+    end)
+
+    if not ok then return false end
+
+    Tween=t
+
+    local done=false
+    local c=t.Completed:Connect(
+        function()
+            done=true
+        end
+    )
+
+    t:Play()
+
+    while
+        Farm
+        and my==Token
+        and not done
+    do
+        task.wait()
+    end
+
+    c:Disconnect()
+
+    if not done then
+        pcall(function()
+            t:Cancel()
+        end)
+    end
+
+    Tween=nil
+    return done
+end
+
+local function Activate(p)
+
+    if not p
+    or not p.Parent
+    or not p.Enabled then
+        return false
+    end
+
+    if type(fireproximityprompt)=="function" then
+        local ok=pcall(function()
+            fireproximityprompt(p)
+        end)
+
+        if ok then
+            return true
+        end
+    end
+
+    return pcall(function()
+        p:InputHoldBegin()
+        task.wait(
+            math.max(p.HoldDuration,.05)+.05
+        )
+        p:InputHoldEnd()
+    end)
+end
+
+local function Start()
+
+    if Farm then return end
+
+    Farm=true
+    Token+=1
+
+    local my=Token
+
+    task.spawn(function()
+
+        while Farm
+        and _G.EggGom
+        and my==Token do
+
+            local p=TargetPrompt()
+
+            if p then
+
+                local pos=Pos(p)
+
+                if pos and Go(
+                    CFrame.new(
+                        pos+Vector3.new(0,1.5,0)
+                    )
+                ) then
+
+                    Activate(p)
+
+                    task.wait(
+                        math.max(
+                            p.HoldDuration,
+                            .1
+                        )
+                    )
+                end
+
+            else
+                task.wait(.35)
+            end
+        end
+    end)
+end
+
+A:CreateToggle({
+    Name="🥚 Auto Steal + Prompt",
+    CurrentValue=false,
+
+    Callback=function(v)
+
+        _G.EggGom=v
+
+        if v then
+            Start()
+        else
+            Stop()
+        end
+    end
+})
+
+A:CreateSlider({
+    Name="🚀 Tween Speed",
+    Range={16,500},
+    Increment=1,
+    CurrentValue=150,
+
+    Callback=function(v)
+        _G.TweenSpeed=tonumber(v) or 150
+    end
+})
+
+A:CreateSlider({
+    Name="🏃 WalkSpeed",
+    Range={16,300},
+    Increment=1,
+    CurrentValue=16,
+
+    Callback=function(v)
+        Speed=tonumber(v) or 16
+
+        if SpeedOn then
+            local h=Hum()
+            if h then
+                pcall(function()
+                    h.WalkSpeed=Speed
+                end)
+            end
+        end
+    end
+})
+
+A:CreateToggle({
+    Name="🏃 Speed Override",
+    CurrentValue=false,
+
+    Callback=function(v)
+        SpeedOn=v
+
+        local h=Hum()
+
+        if h then
+            pcall(function()
+                h.WalkSpeed=v and Speed or 16
+            end)
+        end
+    end
+})
+
+A:CreateSlider({
+    Name="🦘 JumpPower",
+    Range={50,250},
+    Increment=1,
+    CurrentValue=50,
+
+    Callback=function(v)
+        Jump=tonumber(v) or 50
+
+        local h=Hum()
+
+        if h and h.UseJumpPower then
+            pcall(function()
+                h.JumpPower=Jump
+            end)
+        end
+    end
+})
+
+A:CreateToggle({
+    Name="🦘 Infinite Jump",
+    CurrentValue=false,
+
+    Callback=function(v)
+        JumpOn=v
+    end
+})
+
+A:CreateToggle({
+    Name="👻 Noclip",
+    CurrentValue=false,
+
+    Callback=function(v)
+        Noclip=v
+    end
+})
+
+UIS.JumpRequest:Connect(
+    function()
+        if JumpOn then
+            local h=Hum()
+
+            if h then
+                pcall(function()
+                    h:ChangeState(
+                        Enum.HumanoidStateType.Jumping
+                    )
+                end)
+            end
+        end
+    end
+)
+
+RS.Stepped:Connect(
+    function()
+
+        if not Noclip then
+            return
+        end
+
+        local c=C()
+        if not c then return end
+
+        for _,x in ipairs(
+            c:GetDescendants()
+        ) do
+
+            if x:IsA("BasePart") then
+                pcall(function()
+                    x.CanCollide=false
+                end)
+            end
+        end
+    end
+)
+
+pcall(function()
+
+    LP.Idled:Connect(
+        function()
+
+            local cam=workspace.CurrentCamera
+            if not cam then return end
+
+            pcall(function()
+                V:Button2Down(
+                    Vector2.new(0,0),
+                    cam.CFrame
+                )
+
+                task.wait(.2)
+
+                V:Button2Up(
+                    Vector2.new(0,0),
+                    cam.CFrame
+                )
+            end)
+        end
+    )
+end)
+
+--==================================================
+-- ☁ CLOUD
+--==================================================
+
+local Q=W:CreateTab("☁ Cloud",4483362458)
+local Loaded={}
+
+local Clouds={
+    {"🔥 AxonicHub","https://raw.githubusercontent.com/AxonicHub/loader/refs/heads/main/stealanegg"},
+    {"🔮 NEVAHUB","https://raw.githubusercontent.com/VEZ2/NEVAHUB/main/2"},
+    {"🛠️ Infinite Yield","https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"},
+    {"🥚 Chilly","https://raw.githubusercontent.com/kadit9999/stealanegg/refs/heads/main/chilly.lua"},
+    {"👑 Nasi-Keyless","https://raw.githubusercontent.com/Lboydz/script/refs/heads/main/Nasi-Keyless.lua"},
+    {"🥚 WhiteX1208","https://raw.githubusercontent.com/WhiteX1208/Scripts/refs/heads/main/StealEggOnly.luau"}
+}
+
+for _,x in ipairs(Clouds) do
+
+    Q:CreateButton({
+        Name=x[1],
+
+        Callback=function()
+
+            if Loaded[x[2]] then
+                return N(
+                    "Cloud",
+                    x[1].." đã tải.",
+                    2
+                )
+            end
+
+            task.spawn(function()
+
+                local ok,e=Load(x[2])
+
+                if ok then
+                    Loaded[x[2]]=true
+                end
+
+                N(
+                    ok
+                    and "Cloud"
+                    or "Cloud Error",
+
+                    ok
+                    and x[1].." đã chạy."
+                    or tostring(e),
+
+                    ok and 2 or 5
+                )
+            end)
+        end
+    })
+end
+
+--==================================================
+-- ⚡ OPTIMIZATION
+--==================================================
+
+local O=W:CreateTab(
+    "⚡ Optimization",
+    4483362458
+)
+
+local Saved={}
+
+O:CreateButton({
+    Name="⚡ Tắt Effects",
+
+    Callback=function()
+
+        local n=0
+
+        for _,x in ipairs(
+            workspace:GetDescendants()
+        ) do
+
+            if x:IsA("ParticleEmitter")
+            or x:IsA("Beam")
+            or x:IsA("Trail") then
+
+                if Saved[x]==nil then
+                    Saved[x]=x.Enabled
+                end
+
+                pcall(function()
+                    x.Enabled=false
+                end)
+
+                n+=1
+            end
+        end
+
+        N(
+            "Optimization",
+            "Đã tắt "..n.." effects.",
+            2
+        )
+    end
+})
+
+O:CreateButton({
+    Name="🌕 FullBright",
+
+    Callback=function()
+
+        pcall(function()
+            L.Brightness=3
+            L.ClockTime=14
+            L.FogEnd=100000
+            L.GlobalShadows=false
+            L.ExposureCompensation=1
+        end)
+
+        N(
+            "Optimization",
+            "FullBright ON.",
+            2
+        )
+    end
+})
+
+O:CreateButton({
+    Name="↩ Restore",
+
+    Callback=function()
+
+        local n=0
+
+        for x,v in pairs(Saved) do
+
+            if x and x.Parent then
+                pcall(function()
+                    x.Enabled=v
+                end)
+
+                n+=1
+            end
+        end
+
+        table.clear(Saved)
+
+        N(
+            "Optimization",
+            "Đã khôi phục "..n..".",
+            2
+        )
+    end
+})
+
+--==================================================
+-- 🤖 AI
+--==================================================
+
+local I=W:CreateTab(
+    "🤖 AI",
+    4483362458
+)
+
+local ErrorText=""
+local Errors={}
+
+pcall(function()
+
+    SC.Error:Connect(
+        function(msg)
+            table.insert(
+                Errors,
+                1,
+                "["..os.date("%H:%M:%S").."] "
+                ..tostring(msg)
+            )
+
+            if #Errors>20 then
+                table.remove(Errors)
+            end
+        end
+    )
+end)
+
+I:CreateParagraph({
+    Title="🤖 Game Assistant",
+
+    Content=
+        "Review • Core Check • "
+        .."Error Log • Prompt 1K Test"
+})
+
+I:CreateInput({
+    Name="Dán lỗi Lua",
+    PlaceholderText="attempt to index nil...",
+    RemoveTextAfterFocusLost=false,
+
+    Callback=function(v)
+        ErrorText=tostring(v or "")
+    end
+})
+
+local function Diagnose(s)
+
+    s=tostring(s):lower()
+
+    if s=="" then
+        return "Chưa có lỗi."
+
+    elseif s:find("attempt to index nil",1,true) then
+        return "Có object/biến nil."
+
+    elseif s:find("invalid member",1,true) then
+        return "Member/property không tồn tại."
+
+    elseif s:find("infinite yield",1,true) then
+        return "WaitForChild đang chờ object."
+
+    elseif s:find("syntax",1,true)
+    or s:find("expected",1,true) then
+        return "Có khả năng lỗi cú pháp Luau."
+
+    elseif s:find("fireserver",1,true) then
+        return "Remote hoặc tham số không đúng."
+
+    elseif s:find("httpget",1,true)
+    or s:find("loadstring",1,true) then
+        return "Kiểm tra URL/source."
+    end
+
+    return "Chưa nhận diện mẫu lỗi."
+end
+
+I:CreateButton({
+    Name="🔍 Review Game",
+
+    Callback=function()
+
+        local remotes=0
+
+        for _,x in ipairs(
+            R:GetDescendants()
+        ) do
+
+            if x:IsA("RemoteEvent") then
+                remotes+=1
+            end
+        end
+
+        N(
+            "🤖 Review",
+
+            "Game: "..game.Name
+            .."\nPlayers: "..#P:GetPlayers()
+            .."\nRemotes: "..remotes
+            .."\nPrompts: "..PromptCount()
+            .."\nCharacter: "
+            ..(C() and "OK" or "NO")
+            .."\nRoot: "
+            ..(Root() and "OK" or "NO"),
+
+            7
+        )
+    end
+})
+
+I:CreateButton({
+    Name="🧠 Chẩn Đoán",
+
+    Callback=function()
+        N(
+            "🤖 Diagnose",
+            Diagnose(ErrorText),
+            5
+        )
+    end
+})
+
+I:CreateButton({
+    Name="📋 Error Log",
+
+    Callback=function()
+
+        N(
+            "🤖 Error Log",
+
+            #Errors==0
+            and "Không có lỗi."
+            or table.concat(
+                Errors,
+                "\n"
+            ),
+
+            7
+        )
+    end
+})
+
+I:CreateButton({
+    Name="🦾 Core Check",
+
+    Callback=function()
+
+        local g=Remote({
+            "GuardAction",
+            "GuardRemote"
+        })
+
+        local f=Remote({
+            "ForgeRemote",
+            "CraftItem"
+        })
+
+        N(
+            "🤖 Core",
+
+            "Rayfield: OK"
+            .."\nGuard: "
+            ..(g and g:GetFullName() or "N/A")
+            .."\nForge: "
+            ..(f and f:GetFullName() or "N/A")
+            .."\nPrompts: "
+            ..PromptCount(),
+
+            8
+        )
+    end
+})
+
+I:CreateButton({
+    Name="🧪 ProximityPrompt 1K Self-Test",
+
+    Callback=function()
+
+        local list={}
+
+        for p in pairs(Prompts) do
+            if p.Parent then
+                list[#list+1]=p
+            end
+        end
+
+        if #list==0 then
+            return N(
+                "1K Test",
+                "Không có ProximityPrompt.",
+                3
+            )
+        end
+
+        local good,bad=0,0
+        local start=os.clock()
+
+        for i=1,1000 do
+
+            local p=list[
+                ((i-1)%#list)+1
+            ]
+
+            local pass=pcall(function()
+
+                assert(
+                    p ~= nil,
+                    "Prompt nil"
+                )
+
+    
