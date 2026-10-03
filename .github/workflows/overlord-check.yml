@@ -1,0 +1,42 @@
+name: OVERLORD Security Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check OVERLORD
+        shell: bash
+        run: |
+          set -e
+
+          FILE="Overlord"
+
+          if [ ! -f "$FILE" ]; then
+            echo "❌ Không tìm thấy $FILE"
+            exit 1
+          fi
+
+          echo "✅ Đã tìm thấy $FILE"
+          echo "🔍 Kiểm tra secret phổ biến..."
+
+          if grep -Eiq \
+            'sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{20,}' \
+            "$FILE"; then
+            echo "❌ Phát hiện chuỗi có khả năng là secret/token."
+            exit 1
+          fi
+
+          echo "✅ Security check passed."
