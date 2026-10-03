@@ -1,0 +1,140 @@
+name: Overlord Secure Guardrail
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  guardrail:
+    name: Full Project Security Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Show project inventory
+        shell: bash
+        run: |
+          echo "=== TRACKED PROJECT FILES ==="
+          git ls-files
+          echo
+          echo "=== FILE COUNT ==="
+          git ls-files | wc -l
+
+      - name: Check required project files
+        shell: bash
+        run: |
+          set -e
+
+          test -f Overlord-Of-The-Gods.lua
+          test -f README.md
+          test -f OwnerKeyGuard.server.lua
+          test -f owner-key/OwnerKeyGuard.server.lua
+          test -f owner-key/OwnerKeyClient.local.lua
+
+          test -f key-api/package.json
+          test -f key-api/tsconfig.json
+          test -f key-api/next.config.ts
+
+          test -f key-api/app/api/generate/route.ts
+          test -f key-api/app/api/verify/route.ts
+          test -f key-api/app/api/revoke/route.ts
+
+          echo "Required project files: OK"
+
+      - name: Scan source code for high-risk execution primitives
+        shell: bash
+        run: |
+          set -e
+
+          if git grep -nE \
+            'loadstring|VirtualUser|fireproximityprompt|hookfunction|getgenv|debug\.|game:HttpGet' \
+            -- \
+            '*.lua' \
+            '*.ts' \
+            '*.tsx' \
+            '*.js' \
+            '*.jsx' \
+            '*.mjs' \
+            '*.cjs' \
+            '*.py' \
+            '*.rs' \
+            '*.go' \
+            '*.java' \
+            '*.cs' \
+            '*.c' \
+            '*.cc' \
+            '*.cpp' \
+            '*.h' \
+            '*.hpp'
+          then
+            echo
+            echo "ERROR: High-risk execution primitive detected."
+            exit 1
+          fi
+
+          echo "High-risk execution scan: PASS"
+
+      - name: Scan entire tracked project for obvious secrets
+        shell: bash
+        run: |
+          set -e
+
+          if git grep -nEI \
+            'sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|BEGIN (RSA|OPENSSH|EC|DSA) PRIVATE KEY|AKIA[0-9A-Z]{16}'
+          then
+            echo
+            echo "ERROR: Possible secret or private credential detected."
+            exit 1
+          fi
+
+          echo "Secret scan: PASS"
+
+      - name: Check for accidental environment files
+        shell: bash
+        run: |
+          set -e
+
+          if git ls-files | grep -E '(^|/)\.env($|\.)|\.pem$|\.key$|id_rsa$|id_ed25519$'
+          then
+            echo
+            echo "ERROR: Possible secret-bearing file is tracked."
+            exit 1
+          fi
+
+          echo "Sensitive-file scan: PASS"
+
+      - name: Check Lua syntax files exist
+        shell: bash
+        run: |
+          set -e
+
+          find . \
+            -type f \
+            -name "*.lua" \
+            -not -path "./.git/*" \
+            -print
+
+          echo
+          echo "Lua source inventory: PASS"
+
+      - name: Final result
+        shell: bash
+        run: |
+          echo "======================================"
+          echo " OVERLORD SECURE GUARDRAIL: PASSED"
+          echo "======================================"
+          echo "Workflow completed successfully."
